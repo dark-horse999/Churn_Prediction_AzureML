@@ -1,0 +1,13 @@
+name: churn-ml-env
+channels:
+  - defaults
+dependencies:
+  - python=3.9
+  - pip
+  - pip:
+    - azure-ai-ml
+    - azure-identity
+    - scikit-learn
+    - pandas
+    - joblib
+    - azureml-inference-server-http
