@@ -31,6 +31,7 @@ az login
 az account set -s <your-subscription-id>
 
 ##Creating Compute resources for Model Training
+
 az ml compute create \
   --name my-aml-cluster \
   --size Standard_DS3_v2 \
@@ -39,6 +40,7 @@ az ml compute create \
   --type AmlCompute -g <Resource Group> -w <workspace>
   
 ##Creating Environment  
+
 az ml environment create \
   --name churn-ml-env \
   --version 1 \
@@ -46,6 +48,7 @@ az ml environment create \
   --image mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu20.04:latest -g <Resource Group> -w <workspace>
 
 ##Register Training Data
+
   az ml data create \
   --name churn-train \
   --version 1 \
@@ -53,24 +56,29 @@ az ml environment create \
   --type uri_file
 
 ##Submit Training Job
+
 az ml job create --file train-aml.yml -g <Resource Group> -w <workspace>
 az ml job stream --name churn-train-job -g <Resource Group> -w <workspace>
 
 ##Register Trained Model
+
 az ml model create \
   -n churn_pipeline \
   --path "azureml://jobs/churn-train-job/outputs/model_output/paths/churn_pipeline.joblib" -g <Resource Group> -w <workspace>
 
 ##Create & Deploy Online Endpoint
+
 az ml online-endpoint create -f endpoint.yml -g <Resource Group> -w <workspace>
 az ml online-deployment create -f deployment-staging.yml -g <RESOURCE_GROUP> -w <WORKSPACE_NAME>
 az ml online-endpoint update -n churn-endpoint --traffic "blue=100" -g <RESOURCE_GROUP> -w <WORKSPACE_NAME>
 
 ##Check Endpoint Details & Get Authentication Keys
+
 az ml online-endpoint show -n churn-endpoint -g <RESOURCE_GROUP> -w <WORKSPACE_NAME> --query scoring_uri -o tsv
 az ml online-endpoint get-credentials -n churn-endpoint -g <RESOURCE_GROUP> -w <WORKSPACE_NAME>
 
 ##Test the Endpoint
+
 $headers = @{
   "Authorization" = "Bearer <your-primary-or-secondary-key>"
   "Content-Type"  = "application/json"
