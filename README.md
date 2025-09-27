@@ -38,7 +38,7 @@ az ml compute create \
   --min-instances 0 \
   --max-instances 4 \
   --type AmlCompute \
-  -g <Resource Group> -w <workspace>
+  -g <RESOURCE_GROUP> -w <WORKSPACE_NAME>
   
 ##Creating Environment  
 
@@ -47,7 +47,7 @@ az ml environment create \
   --version 1 \
   --conda-file environment.yml \
   --image mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu20.04:latest \
-  -g <Resource Group> -w <workspace>
+  -g <RESOURCE_GROUP> -w <WORKSPACE_NAME>
 
 ##Register Training Data
 
@@ -56,24 +56,24 @@ az ml environment create \
   --version 1 \
   --path customer_churn_dataset-training-master.csv \
   --type uri_file \
-  -g <Resource Group> -w <workspace>
+  -g <RESOURCE_GROUP> -w <WORKSPACE_NAME>
 
 ##Submit Training Job
 
-az ml job create --file train-aml.yml -g <Resource Group> -w <workspace>
+az ml job create --file train-aml.yml -g <RESOURCE_GROUP> -w <WORKSPACE_NAME>
 
-az ml job stream --name churn-train-job -g <Resource Group> -w <workspace>
+az ml job stream --name churn-train-job -g <RESOURCE_GROUP> -w <WORKSPACE_NAME>
 
 ##Register Trained Model
 
 az ml model create \
   -n churn_pipeline \
   --path "azureml://jobs/churn-train-job/outputs/model_output/paths/churn_pipeline.joblib" \
-  -g <Resource Group> -w <workspace>
+  -g <RESOURCE_GROUP> -w <WORKSPACE_NAME>
 
 ##Create & Deploy Online Endpoint
 
-az ml online-endpoint create -f endpoint.yml -g <Resource Group> -w <workspace>
+az ml online-endpoint create -f endpoint.yml -g <RESOURCE_GROUP> -w <WORKSPACE_NAME>
 
 az ml online-deployment create -f deployment-staging.yml -g <RESOURCE_GROUP> -w <WORKSPACE_NAME>
 
