@@ -1,0 +1,47 @@
+name: CI-CD (ACR + AppService container)
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build-push-deploy:
+    runs-on: ubuntu-latest
+    env:
+      ACR_NAME: myAcrName
+      WEBAPP_NAME: myWebAppName
+      RG: myRG
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Azure login
+      uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+    - name: Get Key Vault secrets (optional; only if needed during build/test)
+      uses: azure/get-keyvault-secrets@v1
+      with:
+        keyvault: myKeyVault
+        secrets: AZUREML-SCORING-URI,AZUREML-API-KEY
+      # now secrets are available as env vars: ${{ secrets.AZUREML-SCORING-URI }}
+
+    - name: Build Docker image
+      run: |
+        IMAGE_TAG=${{ env.ACR_NAME }}.azurecr.io/${{ env.WEBAPP_NAME }}:${{ github.sha }}
+        az acr login --name ${{ env.ACR_NAME }}
+        docker build -t $IMAGE_TAG .
+        docker push $IMAGE_TAG
+      env:
+        DOCKER_BUILDKIT: 1
+
+    - name: Update WebApp (set container)
+      run: |
+        az webapp config container set -g $RG -n $WEBAPP_NAME --docker-custom-image-name ${{ env.ACR_NAME }}.azurecr.io/${{ env.WEBAPP_NAME }}:${{ github.sha }}
+    - name: Update Azure ML endpoint
+      run: |
+       az ml model create -n churn_pipeline --path ./model/churn_pipeline.joblib -g cloud_assignment -w deba
+       az ml online-deployment create --file deployment-staging.yml -g cloud_assignment -w deba
+       az ml online-endpoint update -n churn-endpoint --traffic "blue=100" -g cloud_assignment -w deba
+ 
