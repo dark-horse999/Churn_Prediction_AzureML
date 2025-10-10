@@ -25,7 +25,7 @@ jobs:
       with:
         keyvault: myKeyVault
         secrets: AZUREML-SCORING-URI,AZUREML-API-KEY
-      # now secrets are available as env vars: ${{ secrets.AZUREML-SCORING-URI }}
+      
 
     - name: Build Docker image
       run: |
