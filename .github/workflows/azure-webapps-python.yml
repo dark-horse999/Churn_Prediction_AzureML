@@ -24,7 +24,7 @@ jobs:
         uses: azure/get-keyvault-secrets@v1
         with:
           keyvault: myKeyVault
-          secrets: AZUREML-SCORING-URI,AZUREML-API-KEY
+          secrets: AZUREML-SCORING-URI
       
 
       # =========================================================
@@ -44,7 +44,7 @@ jobs:
         run: |
           echo "🏃 Submitting training job..."
           az ml job create \
-            --file training/train-aml.yml \
+            --file job/train-aml.yml \
             -g cloud_assignment -w deba
 
       - name: Wait for Job Completion and Register Model
