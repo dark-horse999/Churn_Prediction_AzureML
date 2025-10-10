@@ -9,8 +9,8 @@ jobs:
     runs-on: ubuntu-latest
     env:
       ACR_NAME: myAcrName
-      WEBAPP_NAME: myWebAppName
-      RG: myRG
+      WEBAPP_NAME: ChurnApp
+      RG: cloud_assignment
 
     steps:
     - uses: actions/checkout@v4
@@ -42,6 +42,6 @@ jobs:
     - name: Update Azure ML endpoint
       run: |
        az ml model create -n churn_pipeline --path ./model/churn_pipeline.joblib -g cloud_assignment -w deba
-       az ml online-deployment create --file deployment-staging.yml -g cloud_assignment -w deba
+       az ml online-deployment create --file ../endpoint/deployment-staging.yml -g cloud_assignment -w deba
        az ml online-endpoint update -n churn-endpoint --traffic "blue=100" -g cloud_assignment -w deba
  
