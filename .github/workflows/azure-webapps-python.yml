@@ -13,35 +13,63 @@ jobs:
       RG: cloud_assignment
 
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Azure login
-      uses: azure/login@v1
-      with:
-        creds: ${{ secrets.AZURE_CREDENTIALS }}
+      - name: Azure login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-    - name: Get Key Vault secrets (optional; only if needed during build/test)
-      uses: azure/get-keyvault-secrets@v1
-      with:
-        keyvault: myKeyVault
-        secrets: AZUREML-SCORING-URI,AZUREML-API-KEY
+      - name: Get Key Vault secrets (optional; only if needed during build/test)
+        uses: azure/get-keyvault-secrets@v1
+        with:
+          keyvault: myKeyVault
+          secrets: AZUREML-SCORING-URI,AZUREML-API-KEY
       
 
-    - name: Build Docker image
-      run: |
-        IMAGE_TAG=${{ env.ACR_NAME }}.azurecr.io/${{ env.WEBAPP_NAME }}:${{ github.sha }}
-        az acr login --name ${{ env.ACR_NAME }}
-        docker build -t $IMAGE_TAG .
-        docker push $IMAGE_TAG
-      env:
-        DOCKER_BUILDKIT: 1
+      # =========================================================
+      # === Azure ML CI/CD Pipeline Steps ===
+      # =========================================================
 
-    - name: Update WebApp (set container)
-      run: |
-        az webapp config container set -g $RG -n $WEBAPP_NAME --docker-custom-image-name ${{ env.ACR_NAME }}.azurecr.io/${{ env.WEBAPP_NAME }}:${{ github.sha }}
-    - name: Update Azure ML endpoint
-      run: |
-       az ml model create -n churn_pipeline --path ./model/churn_pipeline.joblib -g cloud_assignment -w deba
-       az ml online-deployment create --file ../endpoint/deployment-staging.yml -g cloud_assignment -w deba
-       az ml online-endpoint update -n churn-endpoint --traffic "blue=100" -g cloud_assignment -w deba
- 
+      - name: Build and Register Azure ML Environment
+        run: |
+          echo "🔧 Building custom Azure ML environment..."
+          az ml environment create \
+            --file environment/environment.yml \
+            --name churn-ml-env \
+            --version 1 \
+            -g cloud_assignment -w deba
+
+      - name: Submit Training Job
+        run: |
+          echo "🏃 Submitting training job..."
+          az ml job create \
+            --file training/train-aml.yml \
+            -g cloud_assignment -w deba
+
+      - name: Wait for Job Completion and Register Model
+        run: |
+          echo "🧠 Registering model from completed job..."
+          JOB_NAME=$(az ml job list --query "[0].name" -o tsv -g cloud_assignment -w deba)
+          MODEL_PATH="azureml://jobs/$JOB_NAME/outputs/model_output/paths/churn_pipeline.joblib"
+
+          az ml model create \
+            --name churn_pipeline \
+            --path $MODEL_PATH \
+            -g cloud_assignment -w deba
+
+      - name: Create & Deploy Online Endpoint
+        run: |
+          echo "🚀 Creating and deploying online endpoint..."
+          az ml online-endpoint create \
+            --file endpoint/endpoint.yml \
+            -g cloud_assignment -w deba
+
+          az ml online-deployment create \
+            --file endpoint/deployment-staging.yml \
+            -g cloud_assignment -w deba
+
+          az ml online-endpoint update \
+            --name churn-endpoint \
+            --traffic "blue=100" \
+            -g cloud_assignment -w deba
